@@ -1,0 +1,121 @@
+{
+  "title": "Cluster Heartbeat",
+  "uid": "cluster-heartbeat",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "tags": ["gpu", "cluster", "ml"],
+  "time": {"from": "now-12h", "to": "now"},
+  "templating": {
+    "list": [
+      {
+        "name": "DS_JSON",
+        "type": "datasource",
+        "label": "JSON API",
+        "query": "simpod-json-datasource",
+        "description": "JSON API / Infinity datasource pointing at the Cluster Heartbeat API (default http://localhost:8000)"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Cluster Health Score",
+      "datasource": {"uid": "${DS_JSON}"},
+      "gridPos": {"h": 6, "w": 4, "x": 0, "y": 0},
+      "fieldConfig": {
+        "defaults": {"min": 0, "max": 100, "unit": "none",
+          "thresholds": {"steps": [
+            {"color": "red", "value": 0},
+            {"color": "yellow", "value": 60},
+            {"color": "green", "value": 85}]}}
+      },
+      "options": {"colorMode": "background", "graphMode": "area"},
+      "targets": [{"refId": "A", "url": "/api/v1/cluster/summary", "fields": [{"name": "health_score"}]}]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Nodes at Risk",
+      "datasource": {"uid": "${DS_JSON}"},
+      "gridPos": {"h": 6, "w": 4, "x": 4, "y": 0},
+      "fieldConfig": {"defaults": {"thresholds": {"steps": [
+        {"color": "green", "value": 0}, {"color": "red", "value": 1}]}}},
+      "targets": [{"refId": "A", "url": "/api/v1/cluster/summary", "fields": [{"name": "nodes_at_risk"}]}]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Critical Alerts",
+      "datasource": {"uid": "${DS_JSON}"},
+      "gridPos": {"h": 6, "w": 4, "x": 8, "y": 0},
+      "fieldConfig": {"defaults": {"thresholds": {"steps": [
+        {"color": "green", "value": 0}, {"color": "red", "value": 1}]}}},
+      "targets": [{"refId": "A", "url": "/api/v1/cluster/summary", "fields": [{"name": "critical_alerts"}]}]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Reclaimable Spend (USD)",
+      "datasource": {"uid": "${DS_JSON}"},
+      "gridPos": {"h": 6, "w": 4, "x": 12, "y": 0},
+      "fieldConfig": {"defaults": {"unit": "currencyUSD"}},
+      "targets": [{"refId": "A", "url": "/api/v1/cluster/summary", "fields": [{"name": "estimated_reclaimable_usd"}]}]
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Avg GPU Utilization",
+      "datasource": {"uid": "${DS_JSON}"},
+      "gridPos": {"h": 6, "w": 4, "x": 16, "y": 0},
+      "fieldConfig": {"defaults": {"unit": "percent", "min": 0, "max": 100}},
+      "targets": [{"refId": "A", "url": "/api/v1/cluster/summary", "fields": [{"name": "avg_gpu_utilization_pct"}]}]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Cluster Health / Avg GPU Utilization / Max Failure Risk",
+      "datasource": {"uid": "${DS_JSON}"},
+      "gridPos": {"h": 9, "w": 24, "x": 0, "y": 6},
+      "fieldConfig": {"defaults": {"custom": {"drawStyle": "line", "fillOpacity": 12}}},
+      "targets": [
+        {"refId": "A", "url": "/api/v1/cluster/timeseries", "path": "cluster_health", "fields": [{"name": "ts", "type": "time"}, {"name": "value", "type": "number"}]},
+        {"refId": "B", "url": "/api/v1/cluster/timeseries", "path": "avg_gpu_utilization", "fields": [{"name": "ts", "type": "time"}, {"name": "value", "type": "number"}]},
+        {"refId": "C", "url": "/api/v1/cluster/timeseries", "path": "max_failure_risk", "fields": [{"name": "ts", "type": "time"}, {"name": "value", "type": "number"}]}
+      ]
+    },
+    {
+      "id": 7,
+      "type": "table",
+      "title": "Active Alerts (evidence + recommended action)",
+      "datasource": {"uid": "${DS_JSON}"},
+      "gridPos": {"h": 9, "w": 24, "x": 0, "y": 15},
+      "targets": [{"refId": "A", "url": "/api/v1/alerts",
+        "fields": [{"name": "ts"}, {"name": "node_id"}, {"name": "type"},
+                   {"name": "severity"}, {"name": "message"}, {"name": "recommended_action"}]}]
+    },
+    {
+      "id": 8,
+      "type": "table",
+      "title": "Scheduling Recommendation (ranked placements)",
+      "datasource": {"uid": "${DS_JSON}"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+      "targets": [{"refId": "A", "url": "/api/v1/recommendations/scheduling", "path": "recommended",
+        "fields": [{"name": "node_id"}, {"name": "score"},
+                   {"name": "predicted_free_gpu_pct"}, {"name": "predicted_free_mem_pct"},
+                   {"name": "gpu_health"}, {"name": "failure_risk"}, {"name": "current_class"}]}]
+    },
+    {
+      "id": 9,
+      "type": "table",
+      "title": "Cost Optimization — idle / ghost nodes",
+      "datasource": {"uid": "${DS_JSON}"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+      "targets": [{"refId": "A", "url": "/api/v1/recommendations/cost", "path": "idle_or_wasteful_nodes",
+        "fields": [{"name": "node_id"}, {"name": "kind"}, {"name": "idle_hours"},
+                   {"name": "mean_power_w"}, {"name": "estimated_savings_usd_per_day"},
+                   {"name": "recommended_action"}]}]
+    }
+  ]
+}

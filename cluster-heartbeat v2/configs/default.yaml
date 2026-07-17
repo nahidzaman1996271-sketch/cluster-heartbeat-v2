@@ -1,0 +1,102 @@
+# ============================================================================
+# Cluster Heartbeat — default configuration
+# Override any key from the CLI, e.g.:
+#   python scripts/train.py --config configs/default.yaml --set train.epochs=30
+# ============================================================================
+
+project: cluster-heartbeat
+seed: 42
+
+# --------------------------------------------------------------------------
+# Data ingestion: exactly one of synthetic | prometheus | alibaba
+# --------------------------------------------------------------------------
+data:
+  source: synthetic
+
+  synthetic:
+    nodes: 16
+    steps: 720                 # 12 h of telemetry at the interval below
+    interval_seconds: 60
+    out_dir: data/synthetic
+    incident_probability: 0.5  # chance a node experiences an incident per run
+    seed: 42
+
+  prometheus:
+    url: http://localhost:9090
+    lookback_hours: 12
+    step_seconds: 60
+    timeout_seconds: 30
+    verify_tls: false
+
+  alibaba:
+    raw_dir: data/alibaba
+    machine_usage_file: machine_usage.csv
+    max_machines: 50
+
+# --------------------------------------------------------------------------
+# Sliding-window feature generation
+# --------------------------------------------------------------------------
+window:
+  size: 30                     # timesteps per window (30 min @ 60 s interval)
+  stride: 5
+  forecast_horizon_steps: 1    # demand head predicts this many steps ahead
+  ttf_horizon_hours: 12        # TTF regression horizon: beyond this the honest
+                               # answer is "not predictable from one window"
+
+# --------------------------------------------------------------------------
+# Model
+# --------------------------------------------------------------------------
+model:
+  type: autoencoder            # autoencoder | pca
+  latent_dim: 48               # heartbeat embedding size
+  hidden_dims: [512, 256]
+  dropout: 0.1
+  use_deltas: true             # append trend channels (early anomaly signal)
+  pca_components: 16           # used when type = pca (Phase-1 baseline)
+
+# --------------------------------------------------------------------------
+# Training
+# --------------------------------------------------------------------------
+train:
+  epochs: 30
+  batch_size: 64
+  lr: 0.001
+  weight_decay: 0.00001
+  val_split: 0.25              # fraction of *nodes* held out for validation
+  patience: 6                  # early stopping on validation reconstruction loss
+  device: auto                 # auto | cpu | cuda
+  mask_prob: 0.10              # channel masking → forces cross-feature
+                               # reconstruction (kills the identity shortcut)
+  loss_weights:
+    reconstruction: 1.0
+    classification: 0.5
+    demand: 0.5
+    ttf: 0.3
+
+# --------------------------------------------------------------------------
+# Scoring & recommendation business rules
+# --------------------------------------------------------------------------
+scoring:
+  temperature:
+    warn_celsius: 80
+    crit_celsius: 90
+  anomaly:
+    z_full_scale: 6.0          # z-score mapped to anomaly probability ~1.0
+    alert_threshold: 0.7
+  failure:
+    risk_alert_threshold: 0.6
+  idle:
+    gpu_util_max: 5.0          # %
+    mem_util_max: 10.0         # % (a "ghost job" exceeds this with no util)
+    min_consecutive_windows: 3
+  cost:
+    electricity_usd_per_kwh: 0.12
+    gpu_hourly_cost_usd: 2.50  # on-demand price proxy per GPU hour
+
+# --------------------------------------------------------------------------
+# Paths
+# --------------------------------------------------------------------------
+paths:
+  checkpoints: checkpoints
+  logs: logs
+  reports: reports

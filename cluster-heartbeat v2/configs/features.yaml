@@ -1,0 +1,123 @@
+# ============================================================================
+# Cluster Heartbeat — Canonical Feature Registry
+# ----------------------------------------------------------------------------
+# Single source of truth for the 13 telemetry signals that make up a workload
+# fingerprint. Order matters: tensors are built in this exact order.
+# Each feature records where it comes from (DCGM / node_exporter / custom
+# exporter), the Prometheus expression used in production, its unit, and the
+# physical validity range used during cleaning.
+# ============================================================================
+
+features:
+  - name: gpu_utilization
+    source: dcgm
+    prometheus_metric: DCGM_FI_DEV_GPU_UTIL
+    unit: "%"
+    min: 0
+    max: 100
+    description: SM active time averaged over the node's GPUs.
+
+  - name: memory_utilization
+    source: dcgm
+    prometheus_metric: DCGM_FI_DEV_MEM_COPY_UTIL
+    unit: "%"
+    min: 0
+    max: 100
+    description: GPU framebuffer copy-engine utilization.
+
+  - name: gpu_temperature
+    source: dcgm
+    prometheus_metric: DCGM_FI_DEV_GPU_TEMP
+    unit: "celsius"
+    min: 0
+    max: 110
+    description: GPU core temperature, max across GPUs on the node.
+
+  - name: power_consumption
+    source: dcgm
+    prometheus_metric: DCGM_FI_DEV_POWER_USAGE
+    unit: "watts"
+    min: 0
+    max: 500
+    description: Board power draw summed across GPUs.
+
+  - name: ecc_errors
+    source: dcgm
+    prometheus_metric: DCGM_FI_DEV_ECC_SBE_VOL_TOTAL
+    unit: "count"
+    min: 0
+    max: null          # unbounded counter — cleaned as a per-interval rate
+    description: Volatile ECC single-bit errors per scrape interval.
+
+  - name: xid_errors
+    source: dcgm
+    prometheus_metric: DCGM_FI_DEV_XID_ERRORS
+    unit: "code"
+    min: 0
+    max: 143
+    description: Last XID error code seen in the interval (0 = none).
+
+  - name: cpu_usage
+    source: node_exporter
+    prometheus_metric: '100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[1m])))'
+    unit: "%"
+    min: 0
+    max: 100
+    description: Host CPU utilization.
+
+  - name: ram_usage
+    source: node_exporter
+    prometheus_metric: '100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)'
+    unit: "%"
+    min: 0
+    max: 100
+    description: Host RAM utilization.
+
+  - name: network_throughput
+    source: node_exporter
+    prometheus_metric: '(rate(node_network_transmit_bytes_total[1m]) + rate(node_network_receive_bytes_total[1m])) / 1e6'
+    unit: "MB/s"
+    min: 0
+    max: 12500
+    description: Combined NIC throughput.
+
+  - name: disk_io
+    source: node_exporter
+    prometheus_metric: '(rate(node_disk_read_bytes_total[1m]) + rate(node_disk_written_bytes_total[1m])) / 1e6'
+    unit: "MB/s"
+    min: 0
+    max: 4000
+    description: Combined disk read+write throughput.
+
+  - name: job_runtime
+    source: custom_exporter   # kube-state-metrics / scheduler annotations
+    prometheus_metric: kube_pod_container_status_started_timestamp_seconds
+    unit: "minutes"
+    min: 0
+    max: null
+    description: Runtime of the longest-running GPU job on the node.
+
+  - name: queue_length
+    source: custom_exporter   # scheduler pending pods
+    prometheus_metric: scheduler_pending_pods
+    unit: "count"
+    min: 0
+    max: null
+    description: Pending pods in the scheduler queue.
+
+  - name: active_processes
+    source: dcgm
+    prometheus_metric: dcgm_gpu_active_processes   # nvidia-smi compute apps, exported
+    unit: "count"
+    min: 0
+    max: 64
+    description: Compute processes currently resident on the GPU(s).
+
+# Workload behavior classes produced by the classifier head.
+classes:
+  - idle
+  - compute_bound
+  - memory_bound
+  - io_bound
+  - network_bound
+  - mixed

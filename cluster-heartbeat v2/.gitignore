@@ -1,0 +1,19 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+
+# data & artifacts
+data/synthetic/*.csv
+data/synthetic/*.json
+data/alibaba/*.csv
+checkpoints/
+logs/
+reports/
+
+# misc
+.pytest_cache/
+.ipynb_checkpoints/
+.DS_Store

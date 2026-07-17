@@ -1,0 +1,32 @@
+# Demo stack: Cluster Heartbeat API + Prometheus + Grafana
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      CH_CKPT_DIR: checkpoints/best
+      CH_DATA_DIR: data/synthetic
+      CH_CONFIG: configs/default.yaml
+    volumes:
+      - ./checkpoints:/app/checkpoints
+      - ./reports:/app/reports
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./deploy/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_INSTALL_PLUGINS: simpod-json-datasource
+    volumes:
+      - ./deploy/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - ./dashboards:/var/lib/grafana/dashboards:ro

@@ -1,0 +1,17 @@
+# Prometheus config for the demo stack.
+# In production, dcgm-exporter/node_exporter targets replace the api job.
+global:
+  scrape_interval: 30s
+
+scrape_configs:
+  - job_name: cluster-heartbeat-api
+    static_configs:
+      - targets: ["api:8000"]   # /metrics request counters
+
+  # - job_name: dcgm-exporter
+  #   static_configs:
+  #     - targets: ["dcgm-exporter:9400"]
+
+  # - job_name: node-exporter
+  #   static_configs:
+  #     - targets: ["node-exporter:9100"]
