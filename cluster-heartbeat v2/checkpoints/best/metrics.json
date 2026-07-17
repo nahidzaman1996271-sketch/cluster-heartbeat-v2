@@ -1,0 +1,52 @@
+{
+  "backend": "autoencoder",
+  "n_windows": 409,
+  "n_val_nodes": 4,
+  "classification": {
+    "accuracy": 0.9706601466992665,
+    "macro_f1": 0.9736946294131766,
+    "per_class_f1": {
+      "idle": 0.9642857142857143,
+      "compute_bound": 0.9703504043126685,
+      "memory_bound": 0.9896907216494846,
+      "io_bound": 0.9367088607594937,
+      "network_bound": 1.0,
+      "mixed": 0.9811320754716981
+    }
+  },
+  "demand": {
+    "gpu_utilization": {
+      "mae": 6.576729774475098,
+      "rmse": 12.358657836914062
+    },
+    "memory_utilization": {
+      "mae": 6.094178199768066,
+      "rmse": 9.110292434692383
+    },
+    "power_consumption": {
+      "mae": 22.219064712524414,
+      "rmse": 42.89640426635742
+    }
+  },
+  "ttf_hours": {
+    "mae": 4.97590446472168,
+    "rmse": 6.111464023590088
+  },
+  "anomaly": {
+    "auroc": 0.7829365079365079,
+    "best": {
+      "f1": 0.6666666666666666,
+      "threshold": 0.7999999999999999,
+      "precision": 0.9583333333333334,
+      "recall": 0.5111111111111111
+    }
+  },
+  "predictive_lead_time_hours": {
+    "mean": 0.5944444444444444,
+    "per_node": {
+      "node_006": 0.45,
+      "node_010": 0.23333333333333334,
+      "node_011": 1.1
+    }
+  }
+}

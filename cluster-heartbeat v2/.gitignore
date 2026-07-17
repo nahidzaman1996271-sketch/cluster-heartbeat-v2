@@ -9,7 +9,6 @@ venv/
 data/synthetic/*.csv
 data/synthetic/*.json
 data/alibaba/*.csv
-checkpoints/
 logs/
 reports/
 

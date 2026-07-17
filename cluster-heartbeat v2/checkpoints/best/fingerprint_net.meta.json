@@ -1,0 +1,271 @@
+{
+  "version": "0.1.0",
+  "model_type": "autoencoder",
+  "feature_names": [
+    "gpu_utilization",
+    "memory_utilization",
+    "gpu_temperature",
+    "power_consumption",
+    "ecc_errors",
+    "xid_errors",
+    "cpu_usage",
+    "ram_usage",
+    "network_throughput",
+    "disk_io",
+    "job_runtime",
+    "queue_length",
+    "active_processes"
+  ],
+  "channel_names": [
+    "gpu_utilization",
+    "memory_utilization",
+    "gpu_temperature",
+    "power_consumption",
+    "ecc_errors",
+    "xid_errors",
+    "cpu_usage",
+    "ram_usage",
+    "network_throughput",
+    "disk_io",
+    "job_runtime",
+    "queue_length",
+    "active_processes",
+    "gpu_utilization (trend)",
+    "memory_utilization (trend)",
+    "gpu_temperature (trend)",
+    "power_consumption (trend)",
+    "ecc_errors (trend)",
+    "xid_errors (trend)",
+    "cpu_usage (trend)",
+    "ram_usage (trend)",
+    "network_throughput (trend)",
+    "disk_io (trend)",
+    "job_runtime (trend)",
+    "queue_length (trend)",
+    "active_processes (trend)"
+  ],
+  "use_deltas": true,
+  "class_names": [
+    "idle",
+    "compute_bound",
+    "memory_bound",
+    "io_bound",
+    "network_bound",
+    "mixed"
+  ],
+  "window_size": 30,
+  "stats": {
+    "err_mean": 0.23630213737487793,
+    "err_std": 0.384025901556015,
+    "per_feature_mean": [
+      0.048322271555662155,
+      0.08424446731805801,
+      0.03571983799338341,
+      0.048065897077322006,
+      0.8302127122879028,
+      0.25877270102500916,
+      0.12378215044736862,
+      0.1337314248085022,
+      0.0753854438662529,
+      0.10354942828416824,
+      0.09917212277650833,
+      0.730215847492218,
+      0.08080548048019409,
+      0.02759518101811409,
+      0.04212910681962967,
+      0.0016802082536742091,
+      0.028287434950470924,
+      1.540258526802063,
+      0.2587124705314636,
+      0.05578809231519699,
+      0.05179920792579651,
+      0.020723799243569374,
+      0.02785286121070385,
+      0.026692867279052734,
+      1.3754435777664185,
+      0.03491513431072235
+    ],
+    "per_feature_std": [
+      0.06620394438505173,
+      0.1234259381890297,
+      0.06691937893629074,
+      0.06534101814031601,
+      1.4605414867401123,
+      4.492345333099365,
+      0.10004275292158127,
+      0.12777088582515717,
+      0.1649053543806076,
+      0.1721123307943344,
+      0.14594754576683044,
+      0.22210381925106049,
+      0.11556486785411835,
+      0.052411314100027084,
+      0.07030575722455978,
+      0.0025890350807458162,
+      0.05170126631855965,
+      2.7391469478607178,
+      4.586020469665527,
+      0.06028669700026512,
+      0.07318374514579773,
+      0.056660257279872894,
+      0.07152257859706879,
+      0.07749727368354797,
+      0.466690331697464,
+      0.06829147040843964
+    ],
+    "agg_z_mean": 1.833557234664363,
+    "agg_z_std": 1.8372181702555488,
+    "agg_z_p99": 7.769232058745076,
+    "threshold": 1.3883798122406006
+  },
+  "metrics": {
+    "backend": "autoencoder",
+    "n_windows": 409,
+    "n_val_nodes": 4,
+    "classification": {
+      "accuracy": 0.9706601466992665,
+      "macro_f1": 0.9736946294131766,
+      "per_class_f1": {
+        "idle": 0.9642857142857143,
+        "compute_bound": 0.9703504043126685,
+        "memory_bound": 0.9896907216494846,
+        "io_bound": 0.9367088607594937,
+        "network_bound": 1.0,
+        "mixed": 0.9811320754716981
+      }
+    },
+    "demand": {
+      "gpu_utilization": {
+        "mae": 6.576729774475098,
+        "rmse": 12.358657836914062
+      },
+      "memory_utilization": {
+        "mae": 6.094178199768066,
+        "rmse": 9.110292434692383
+      },
+      "power_consumption": {
+        "mae": 22.219064712524414,
+        "rmse": 42.89640426635742
+      }
+    },
+    "ttf_hours": {
+      "mae": 4.97590446472168,
+      "rmse": 6.111464023590088
+    },
+    "anomaly": {
+      "auroc": 0.7829365079365079,
+      "best": {
+        "f1": 0.6666666666666666,
+        "threshold": 0.7999999999999999,
+        "precision": 0.9583333333333334,
+        "recall": 0.5111111111111111
+      }
+    },
+    "predictive_lead_time_hours": {
+      "mean": 0.5944444444444444,
+      "per_node": {
+        "node_006": 0.45,
+        "node_010": 0.23333333333333334,
+        "node_011": 1.1
+      }
+    }
+  },
+  "config": {
+    "project": "cluster-heartbeat",
+    "seed": 42,
+    "data": {
+      "source": "synthetic",
+      "synthetic": {
+        "nodes": 16,
+        "steps": 720,
+        "interval_seconds": 60,
+        "out_dir": "data/synthetic",
+        "incident_probability": 0.5,
+        "seed": 42
+      },
+      "prometheus": {
+        "url": "http://localhost:9090",
+        "lookback_hours": 12,
+        "step_seconds": 60,
+        "timeout_seconds": 30,
+        "verify_tls": false
+      },
+      "alibaba": {
+        "raw_dir": "data/alibaba",
+        "machine_usage_file": "machine_usage.csv",
+        "max_machines": 50
+      }
+    },
+    "window": {
+      "size": 30,
+      "stride": 5,
+      "forecast_horizon_steps": 1,
+      "ttf_horizon_hours": 12
+    },
+    "model": {
+      "type": "autoencoder",
+      "latent_dim": 48,
+      "hidden_dims": [
+        512,
+        256
+      ],
+      "dropout": 0.1,
+      "pca_components": 16,
+      "use_deltas": true
+    },
+    "train": {
+      "epochs": 30,
+      "batch_size": 64,
+      "lr": 0.001,
+      "weight_decay": 1e-05,
+      "val_split": 0.25,
+      "patience": 6,
+      "device": "auto",
+      "mask_prob": 0.1,
+      "loss_weights": {
+        "reconstruction": 1.0,
+        "classification": 0.5,
+        "demand": 0.5,
+        "ttf": 0.3
+      }
+    },
+    "scoring": {
+      "temperature": {
+        "warn_celsius": 80,
+        "crit_celsius": 90
+      },
+      "anomaly": {
+        "z_full_scale": 6.0,
+        "alert_threshold": 0.7
+      },
+      "failure": {
+        "risk_alert_threshold": 0.6
+      },
+      "idle": {
+        "gpu_util_max": 5.0,
+        "mem_util_max": 10.0,
+        "min_consecutive_windows": 3
+      },
+      "cost": {
+        "electricity_usd_per_kwh": 0.12,
+        "gpu_hourly_cost_usd": 2.5
+      }
+    },
+    "paths": {
+      "checkpoints": "checkpoints",
+      "logs": "logs",
+      "reports": "reports"
+    }
+  },
+  "model_kwargs": {
+    "n_features": 26,
+    "window_size": 30,
+    "latent_dim": 48,
+    "hidden_dims": [
+      512,
+      256
+    ],
+    "num_classes": 6,
+    "dropout": 0.1
+  }
+}
