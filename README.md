@@ -239,4 +239,4 @@ pytest          # shapes, scoring bounds, model forward, API end-to-end, SHAP ex
 * Lead-time evaluation only counts detections within 6 h before a failure —
   earlier crossings are stale false positives, not predictions.
 
-Team Slow Walker · AI for Cluster Intelligence Hackathon · Mentor: Md Adib Hossain
+Team Slow Walker · AI for Cluster Intelligence Hackathon · Team Leader: Nahid Ibn Zaman,  Mentor: Md Adib Hossain
