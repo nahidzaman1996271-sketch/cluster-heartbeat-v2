@@ -1,242 +1,202 @@
-# Cluster Heartbeat
+# 💓 Cluster Heartbeat v2 — Explainable AI Telemetry & Predictive Operations for GPU Clusters
 
-> One heartbeat driving up reliability, efficiency, and cost savings.
+<div align="center">
 
-**Cluster Heartbeat** is an AI system that continuously monitors GPU clusters
-using Prometheus + NVIDIA DCGM telemetry and compresses every node's behavior
-into a single **workload fingerprint** — a compact, explainable embedding that
-powers three intelligent services from the same operational picture:
+![Cluster Heartbeat v2 Banner](https://img.shields.io/badge/Cluster%20Heartbeat%20v2-Explainable%20AI%20Telemetry-FF3366?style=for-the-badge&logo=nvidia&logoColor=white)
 
-| Pillar | Service | What it does |
-|---|---|---|
-| 1 | **Predictive Failure Detection** | Flags multi-metric drift *before* thresholds are crossed, with estimated time-to-failure and per-feature evidence. |
-| 2 | **Smart GPU Scheduling** | Ranks nodes by *predicted* free capacity, health and failure risk — behavior-aware placement input for a Kubernetes Scheduler Framework plugin. |
-| 3 | **GPU Cost Optimization** | Finds idle nodes and "ghost jobs" (memory allocated, zero compute) and estimates reclaimable spend. |
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)](https://pytorch.org)
+[![SHAP Explainability](https://img.shields.io/badge/XAI-SHAP%20KernelExplainer-blueviolet?style=for-the-badge)](https://shap.readthedocs.io)
+[![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![Prometheus & DCGM](https://img.shields.io/badge/Telemetry-Prometheus%20%7C%20DCGM-E6522C?style=for-the-badge&logo=prometheus&logoColor=white)](https://prometheus.io)
+[![Grafana](https://img.shields.io/badge/Dashboards-Grafana-F46800?style=for-the-badge&logo=grafana&logoColor=white)](dashboards/grafana_dashboard.json)
+[![Docker Ready](https://img.shields.io/badge/Deployment-Docker%20Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)](docker-compose.yml)
 
-```
-Prometheus metrics ──┐
-                     ├──► Heartbeat engine ──► unified workload fingerprint ──┬──► Predictive ops
-DCGM GPU telemetry ──┘   (PyTorch multi-head                                  ├──► Smart scheduling
-                          autoencoder + PCA baseline)                          └──► Cost optimization
+<br/>
+
+**The second-generation AI GPU fleet intelligence system featuring Dual-Layer Explainability (Reconstruction Attribution + Model-Agnostic SHAP), Pre-trained Checkpoints, and Multi-Head Neural Fingerprinting.**  
+*Predicts hardware failures hours in advance, drives intelligent Kubernetes GPU scheduling, and eliminates idle cloud GPU spend.*
+
+[🚀 Quickstart](#-quickstart) • [🧠 Dual-Layer Explainability (SHAP)](#-dual-layer-explainability) • [🏛️ Architecture](#️-architecture--neural-pipeline) • [📊 The 13 Features](#-the-13-telemetry-features) • [📈 Dashboards & API](#-dashboards--rest-api)
+
+---
+
+</div>
+
+## 📌 What's New in v2?
+
+Cluster Heartbeat v2 builds upon the core multi-task autoencoder engine with significant production and explainability enhancements:
+
+- 🔍 **Dual-Layer Explainability:** In addition to instant mathematical reconstruction attribution, v2 adds an on-demand, model-agnostic **SHAP (KernelExplainer)** attribution endpoint (`/api/v1/nodes/{id}/shap_explain`).
+- 🎯 **Pre-Trained Checkpoints Included:** Ships with calibrated weights (`checkpoints/best`) and pre-computed normalization parameters for immediate zero-shot evaluation.
+- ⚡ **Enhanced Anomaly Calibration:** Fleet-wide z-score normalization with physical guardrails and trend ($\Delta$) channel ingestion.
+- 📊 **Comprehensive Ablation Reports:** Documented ablation benchmarks across model depths, latent dimensions, and baseline PCA / Isolation Forest comparisons.
+
+---
+
+## 🏛️ Architecture & Neural Pipeline
+
+```mermaid
+flowchart TD
+    subgraph Ingestion["1. Telemetry Ingestion"]
+        A[NVIDIA DCGM Exporter] --> C[Time-Series Ingestion Engine]
+        B[Prometheus Fleet Scrapes] --> C
+        D[Alibaba Cluster Traces / Synthetic] --> C
+    end
+
+    subgraph Pipeline["2. Feature Processing"]
+        C --> E[Sliding Window: 13 Features × 30 Steps]
+        E --> F[Trend Calculation: Δ First-Order Differences]
+        F --> G[Z-Score Scaler & Physical Clipping]
+    end
+
+    subgraph Core["3. FingerprintNet v2 (PyTorch)"]
+        G --> H["Shared Multi-Layer Representation Encoder (48-d Latent z)"]
+        H --> I["Decoder Head: Masked Reconstruction Anomaly"]
+        H --> J["Classifier Head: Workload Behavioral Profiling"]
+        H --> K["Demand Forecaster: GPU%, VRAM%, Watts"]
+        H --> L["TTF Regressor: log1p(Time-to-Failure)"]
+    end
+
+    subgraph XAI["4. Dual-Layer Explainability Engine"]
+        I --> M["Fast Layer: Exact Per-Feature Reconstruction Error"]
+        H & G --> N["Deep Layer: SHAP KernelExplainer Attribution API"]
+    end
+
+    subgraph Actions["5. Production Operational Pillars"]
+        M & N --> O["Pillar 1: Predictive Failure Alerts (Lead time: 2-6 hrs)"]
+        K --> P["Pillar 2: Behavior-Aware K8s Placement Scoring"]
+        J --> Q["Pillar 3: Ghost Job & Underutilization Reclaim ($)"]
+    end
 ```
 
 ---
 
-## Why one fingerprint?
+## 🔍 Dual-Layer Explainability (XAI)
 
-Healthy workloads have a characteristic multi-metric *shape*: utilization,
-memory, temperature, power and error counters move together in a predictable
-way. Three separate tools (monitoring, scheduler, cost analyzer) each see a
-slice of that shape. Cluster Heartbeat learns the whole shape once — the
-fingerprint — and every service reads from it, the way a hospital monitor
-gives a physician one integrated picture of patient health.
-
-## The 13 input features
-
-Defined in [`configs/features.yaml`](configs/features.yaml) (canonical order,
-source exporter, Prometheus expression, validity range):
-
-GPU utilization · GPU memory utilization · GPU temperature · Power consumption ·
-ECC errors · XID errors · CPU usage · RAM usage · Network throughput · Disk IO ·
-Job runtime · Queue length · Active processes
-
-## Architecture
+In mission-critical data centers, system administrators will not act on opaque "black box" anomaly scores. Cluster Heartbeat v2 implements **two complementary layers of transparent explanation**:
 
 ```
-src/cluster_heartbeat/
-├── config.py               # typed YAML config (dataclasses) + CLI overrides
-├── logging_utils.py        # console + file logging
-├── data/
-│   ├── ingestion.py        # ① synthetic DCGM generator | Prometheus | Alibaba trace
-│   ├── preprocessing.py    # ② regular grid, gap filling, physical clipping, de-spiking
-│   ├── windows.py          # ③ sliding windows + trend (Δ) channels + targets
-│   └── normalization.py    # ④ per-feature z-score, persisted with the checkpoint
-├── models/
-│   ├── fingerprint.py      # ⑤-⑧ FingerprintNet: shared encoder → 4 heads
-│   └── pca.py              #    PCA heartbeat (Phase-1 baseline)
-├── training/
-│   ├── train.py            #    multi-task training, denoising masking, early stop
-│   ├── validate.py         #    AUROC/F1, lead-time, demand & TTF regression
-│   ├── metrics.py          #    metric implementations
-│   └── checkpoint.py       #    versioned checkpoint dirs (weights + scaler + stats)
-├── inference/
-│   ├── pipeline.py         # ⑥-⑪ window → fingerprint → cluster report
-│   ├── scores.py           #    health/risk scores (transparent, decomposed)
-│   └── explain.py          #    per-feature attribution, observed-vs-expected
-├── services/
-│   ├── failure_detection.py  # Pillar 1: alerts with actions
-│   ├── scheduling.py         # Pillar 2: placement scoring
-│   └── cost_optimization.py  # Pillar 3: idle/ghost detection, savings
-└── api/
-    ├── main.py             # FastAPI app + Prometheus /metrics
-    └── schemas.py          # dashboard-ready response models
+                                  ┌── Layer 1: Instant Exact Attribution (Zero latency, model reconstruction error)
+Unified Workload Fingerprint ─────┤
+                                  └── Layer 2: Model-Agnostic SHAP KernelExplainer (Black-box perturbation verification)
 ```
 
-### FingerprintNet
+1. **Layer 1: Exact Reconstruction Attribution (Fast / Streaming):**
+   - Computed instantaneously during inference without approximation.
+   - Decomposes the anomaly score into individual feature deviations: `anomaly_features`, `observed_vs_expected`, and human-readable reason codes.
+2. **Layer 2: Model-Agnostic SHAP Explainer (On-Demand Deep Audit):**
+   - Accessible via `GET /api/v1/nodes/{node_id}/shap_explain`.
+   - Treats the model as a black box and runs game-theoretic Shapley value perturbations against background node windows to prove why a node received its failure risk score.
 
-A window of telemetry `(13 features × 30 steps)` plus first-difference
-**trend channels** `(26 × 30)` is compressed by a shared MLP encoder into the
-heartbeat embedding `z` (48-d). Four heads consume `z`:
+---
 
-* **Decoder** — reconstructs the window; per-channel reconstruction error
-  (z-scored against the healthy fleet, top-k aggregated) is the anomaly
-  signal. Training uses **channel masking** (denoising), which forces
-  cross-feature reconstruction — so a correlation break like *"temperature
-  rising while power is flat"* fires early instead of at the threshold.
-* **Classifier** — workload behavior: `idle | compute_bound | memory_bound |
-  io_bound | network_bound | mixed`.
-* **Demand head** — next-step GPU %, memory %, watts (placement & capacity).
-* **TTF head** — `log1p(hours to failure)` within a 12 h honesty horizon.
+## 📊 The 13 Telemetry Features
 
-The **unified fingerprint** = `[embedding | anomaly | class probs | demand |
-ttf]` plus health/failure scores and human-readable evidence — one JSON
-object per node per window that powers all three services.
+| Index | Metric | Source | Unit | Operational Significance |
+|:---:|:---|:---|:---:|:---|
+| `00` | `gpu_utilization` | NVIDIA DCGM | % | Active compute kernel execution time |
+| `01` | `gpu_memory_util` | NVIDIA DCGM | % | VRAM capacity allocated and held |
+| `02` | `gpu_temperature` | NVIDIA DCGM | °C | Thermal junction temperature |
+| `03` | `power_usage` | NVIDIA DCGM | Watts | Real-time board power draw |
+| `04` | `ecc_errors` | NVIDIA DCGM | count | Single-bit & double-bit memory errors |
+| `05` | `xid_errors` | DCGM / Syslog | code | NVIDIA driver critical event interrupts |
+| `06` | `cpu_usage` | Node Exporter | % | Host CPU utilization |
+| `07` | `ram_usage` | Node Exporter | % | Host RAM footprint |
+| `08` | `net_throughput` | Node Exporter | MB/s | Inter-node NCCL communication & dataset streaming |
+| `09` | `disk_io` | Node Exporter | MB/s | Checkpoint write throughput & dataset caching |
+| `10` | `job_runtime` | Slurm / Kube | hours | Total runtime of current active job |
+| `11` | `queue_length` | Scheduler | count | Jobs pending allocation |
+| `12` | `active_processes` | Procfs | count | Active GPU context process count |
 
-## Quickstart
+---
+
+## 📁 Repository Structure
+
+```plaintext
+cluster-heartbeat-v2/
+├── checkpoints/              # Pre-trained models & scaler weights
+│   └── best/                 # Production-calibrated FingerprintNet checkpoint
+├── configs/                  # Hyperparameter YAML definitions
+│   ├── default.yaml          # Master configuration
+│   └── features.yaml         # Telemetry feature schema
+├── dashboards/               # Grafana dashboard definitions
+├── deploy/                   # Prometheus & Grafana service configurations
+├── reports/                  # Pre-computed ablation reports & sample outputs
+├── scripts/                  # Generation, training, evaluation, and serving scripts
+├── src/cluster_heartbeat/    # Core Python engine
+│   ├── api/                  # FastAPI web server, OpenAPI models, SHAP endpoints
+│   ├── data/                 # Ingestion, physical clipping, sliding windows
+│   ├── inference/            # Streaming scoring, dual-layer attribution
+│   ├── models/               # PyTorch FingerprintNet & PCA implementations
+│   ├── services/             # Three operational pillars
+│   └── training/             # Loss formulation, masking, validation
+├── static/                   # Embedded web UI & visual dashboard assets
+├── tests/                    # Pytest test suite (shapes, scoring, SHAP)
+├── docker-compose.yml        # Full-stack Docker deployment
+├── Dockerfile                # Production container spec
+└── requirements.txt          # Python dependencies
+```
+
+---
+
+## ⚡ Quickstart
+
+### 1. Installation
+```bash
+git clone https://github.com/nahidzaman1996271-sketch/cluster-heartbeat-v2.git
+cd cluster-heartbeat-v2
+
+python -m venv venv
+# Windows:
+.\venv\Scripts\activate
+# Linux/macOS:
+source venv/bin/activate
+
+pip install -r requirements.txt
+pip install -e .
+pip install shap  # Optional: enables Layer-2 SHAP explainability endpoint
+```
+
+### 2. Run Inference with Pre-Trained Weights
+```bash
+python scripts/run_inference.py --checkpoint checkpoints/best --input data/synthetic
+```
+
+### 3. Launch FastAPI Server
+```bash
+python scripts/serve.py --host 0.0.0.0 --port 8000
+```
+Interactive documentation is available at `http://localhost:8000/docs`.
+
+### 4. Query SHAP Explainability Endpoint
+```bash
+curl -X GET "http://localhost:8000/api/v1/nodes/node_03/shap_explain?background_samples=20"
+```
+
+---
+
+## 🐳 Docker Deployment
 
 ```bash
-pip install -e .                      # or: pip install -r requirements.txt
-
-# 1. generate the Phase-1 synthetic DCGM dataset (16 nodes × 12 h, injected incidents)
-python scripts/generate_synthetic_data.py
-
-# 2. train the heartbeat model  (autoencoder default; --set model.type=pca for baseline)
-python scripts/train.py
-
-# 3. fleet inference → dashboard-ready JSON
-python scripts/run_inference.py       # writes reports/latest_report.json
-
-# 4. serve the API
-python scripts/serve.py --port 8000   # docs at http://localhost:8000/docs
+# Launch the full stack (API + Prometheus + Grafana):
+docker compose up -d
 ```
+- **REST API & Swagger:** `http://localhost:8000/docs`
+- **Fleet Grafana Dashboard:** `http://localhost:3000` (`admin` / `admin`)
+- **Prometheus Telemetry Scraper:** `http://localhost:9090`
 
-Any config leaf can be overridden: `python scripts/train.py --set train.epochs=50 --set model.latent_dim=64`
+---
 
-Against a real cluster, set `data.source: prometheus` and point
-`data.prometheus.url` at your server — the ingester pulls every metric in
-`configs/features.yaml`. For the Alibaba Cluster Trace, see
-[`data/README.md`](data/README.md).
+## 👥 Hackathon Team & Acknowledgments
 
-## REST API (dashboard-ready JSON)
+- **Hackathon:** AI for Cluster Intelligence Hackathon
+- **Team:** Team Slow Walker
+- **Team Leader:** Nahid Ibn Zaman
+- **Project Mentor:** Md Adib Hossain
 
-| Endpoint | Payload |
-|---|---|
-| `GET /health` | service/model status |
-| `GET /api/v1/dashboard` | everything below in one round trip |
-| `GET /api/v1/cluster/summary` | health score, nodes at risk, alerts, reclaimable $ |
-| `GET /api/v1/cluster/timeseries` | `{ts, value}` series: cluster health, avg GPU util, max failure risk |
-| `GET /api/v1/nodes` / `GET /api/v1/nodes/{id}` | per-node scores, class, demand prediction, embedding, reasons |
-| `GET /api/v1/nodes/{id}/fingerprint?tail=N` | recent fingerprints for a node |
-| `GET /api/v1/alerts?severity=HIGH` | operator alerts with evidence & recommended action |
-| `GET /api/v1/recommendations/scheduling?gpu_request=50&mem_request=30` | ranked nodes, score breakdown, avoid list |
-| `GET /api/v1/recommendations/cost` | idle/ghost nodes, $/day reclaimable |
-| `POST /api/v1/inference` | ad-hoc window → fingerprint (collector integration) |
-| `GET /api/v1/nodes/{id}/shap_explain` | second-opinion SHAP attribution (see below) |
-| `GET /metrics` | Prometheus counters |
+---
 
-### Example: node fingerprint (excerpt)
-
-```json
-{
-  "node_id": "node_011",
-  "embedding": [0.112, -0.874, "..."],
-  "anomaly_score": 1.0,
-  "anomaly_features": [
-    {"feature": "ecc_errors", "z": 41.2},
-    {"feature": "ecc_errors (trend)", "z": 22.8},
-    {"feature": "xid_errors", "z": 13.6}
-  ],
-  "classification": {"label": "idle", "confidence": 0.52},
-  "demand": {"gpu_utilization": 5.1, "memory_utilization": 22.5, "power_consumption": 66.9},
-  "ttf_hours": 0.0,
-  "failure_risk": 1.0,
-  "gpu_health": 25.0,
-  "reasons": ["Anomalous telemetry shape driven by: ecc_errors, ecc_errors (trend), xid_errors."]
-}
-```
-
-## Outputs (per node per window + fleet rollups)
-
-* **Cluster Health Score** — mean node health, −2 per critical alert
-* **GPU Health Score** — 100 minus decomposed penalties (temperature, anomaly, ECC, XID, memory pressure)
-* **Failure Risk Score** — weighted components: behavior anomaly, ECC trend, XID, TTF estimate
-* **Estimated Time to Failure** — TTF head (hours, ≤ 12 h horizon)
-* **Scheduling Recommendation** — ranked nodes with score breakdown + avoid list + complementary-packing hint
-* **Cost Saving Recommendation** — idle/ghost nodes, $/day reclaimable, recommended action
-* **Resource Utilization Prediction** — next-step GPU/mem/power per node
-
-## Evaluation (synthetic Phase-1, held-out nodes)
-
-| Metric | Value |
-|---|---|
-| Anomaly detection AUROC | 0.78 |
-| Anomaly F1 (best threshold) | 0.67 (precision 0.96) |
-| **Mean predictive lead time before node failure** | **≈ 36 min** (ECC burst: 1.1 h) |
-| Workload classification accuracy | 0.97 |
-| Demand prediction MAE (GPU util) | 6.6 pct pts |
-| TTF regression MAE | 5.0 h |
-
-Numbers come from `checkpoints/best/metrics.json` after `scripts/train.py`;
-they recompute deterministically (`seed: 42`).
-
-## Dashboards
-
-* `GET /api/v1/dashboard` is shaped for Grafana's JSON API / Infinity
-  datasource or a React frontend (stat scalars + `{ts, value}` series +
-  alert table + recommendation objects).
-* [`dashboards/grafana_dashboard.json`](dashboards/grafana_dashboard.json) is
-  an importable starter dashboard (cluster health stat, health/util/risk
-  time series, alerts table, scheduling & cost panels).
-* [`reports/latest_report.json`](reports/latest_report.json) is a real sample
-  produced by `scripts/run_inference.py`.
-
-## Docker
-
-```bash
-docker build -t cluster-heartbeat .
-docker run -p 8000:8000 -v $PWD/checkpoints:/app/checkpoints cluster-heartbeat
-# or the full demo stack (api + prometheus + grafana):
-docker compose up
-```
-
-## Explainability: two complementary layers
-
-Every fingerprint ships with a **fast, exact** explanation by default —
-`anomaly_features`, `observed_vs_expected` and `reasons` come straight from
-the model's own per-feature reconstruction error, so there's no
-approximation and no extra cost.
-
-`GET /api/v1/nodes/{id}/shap_explain` adds a **second opinion**: a
-model-agnostic SHAP (`KernelExplainer`) attribution over the trained model's
-anomaly score, treating the model as a black box and perturbing feature
-means against a background of other nodes' windows. It's slower (a few
-seconds to ~15s depending on background size) and isn't cached in the node
-history — it's meant for on-demand use, e.g. answering "why do you trust
-this score?" in a live demo, independent of whether the audience trusts the
-reconstruction-error mechanism itself. This was merged in from an earlier
-prototype that used SHAP over a classical PCA + IsolationForest detector;
-here it explains the actual trained `FingerprintNet` instead. Requires
-`pip install shap` (optional dependency, not required for the rest of the
-service).
-
-## Tests
-
-```bash
-pytest          # shapes, scoring bounds, model forward, API end-to-end, SHAP explain
-```
-
-## Design notes & honest limitations
-
-* **Phase 1 runs on synthetic DCGM telemetry** (physics-plausible: power ∝
-  utilization, first-order thermal lag, gradually evolving incidents) per the
-  project plan; the Prometheus ingester and Alibaba adapter implement the same
-  canonical schema for real data.
-* TTF is only predicted within a 12 h horizon — beyond that, one 30-minute
-  window honestly cannot say.
-* The PCA backend (`--set model.type=pca`) reproduces the Phase-1 baseline:
-  embedding + anomaly only; classification/demand fall back to documented
-  heuristics.
-* Lead-time evaluation only counts detections within 6 h before a failure —
-  earlier crossings are stale false positives, not predictions.
-
-Team Slow Walker · AI for Cluster Intelligence Hackathon · Team Leader: Nahid Ibn Zaman,  Mentor: Md Adib Hossain
+<div align="center">
+  <sub>Engineered by <a href="https://github.com/nahidzaman1996271-sketch">Nahid Zaman</a> and Team Slow Walker</sub>
+</div>
